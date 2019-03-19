@@ -4,9 +4,9 @@
 
     <main class="material-layout__content" id="main">
         <div id="top"></div>
-        <!-- Sidebar hamburger button -->
+        <!-- Hamburger Button -->
         <button class="MD-burger-icon sidebar-toggle">
-            <span class="MD-burger-layer"></span>
+            <span id="MD-burger-id" class="MD-burger-layer"></span>
         </button>
 
         <!-- Post module -->
@@ -15,7 +15,7 @@
 
                 <!-- Article title -->
                 <div class="mdl-card mdl-shadow--4dp mdl-cell mdl-cell--12-col">
-                    <div class="post_thumbnail-custom mdl-card__media mdl-color-text--grey-50" style="background-image: url(<?php showThumbnail($this); ?>);">
+                    <div class="post_thumbnail-custom mdl-card__media mdl-color-text--grey-50" style="background-image: url(<?php echo showThumbnail($this); ?>);">
                         <p class="article-headline-p">
                             <?php $this->title() ?>
                         </p>
@@ -37,7 +37,7 @@
                             <strong><?php $this->author(); ?></strong>
                             <!-- Articel date -->
                             <span>
-                            <?php if ($this->options->langis == '0'): ?>
+                            <?php if ($this->options->language != 'zh-CN'): ?>
                                 <?php $this->date('F j, Y'); ?>
                             <?php else: ?>
                                 <?php $this->dateWord(); ?>
@@ -45,23 +45,28 @@
                         </span>
                         </div>
                         <div class="section-spacer"></div>
+                        <?php if (getThemeOptions("qrcode") != "false"): ?>
                         <button id="article-functions-qrcode-button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
                             <i class="material-icons" role="presentation">devices other</i>
                             <span class="visuallyhidden">devices other</span>
                         </button>
                         <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="article-functions-qrcode-button">
-                            <img src="https://pan.baidu.com/share/qrcode?w=246&h=246&url=<?php $this->permalink(); ?>">
+                            <li class="mdl-menu__item"><?php lang("post.qrcode") ?></li>
+                            <img src="<?php getQRCode($this->permalink); ?>" height="200" width="200">
                         </ul>
+                        <?php endif; ?>
                         <!-- view tags -->
+                        <?php if (count($this->tags)): ?>
                         <button id="article-functions-viewtags-button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
                             <!-- For modern browsers. -->
                             <i class="material-icons" role="presentation">bookmarks</i>
                             <span class="visuallyhidden">tags</span>
                         </button>
                         <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="article-functions-viewtags-button">
-                            <li class="mdl-menu__item" >
+                            <li class="mdl-menu__item">
                                 <?php $this->tags('<li class="mdl-menu__item" style="text-decoration: none;"> ', true, ''); ?></li>
                         </ul>
+                        <?php endif; ?>
                         <!-- share -->
                         <button id="article-fuctions-share-button" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
                             <i class="material-icons" role="presentation">share</i>
@@ -69,7 +74,7 @@
                         </button>
                         <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="article-fuctions-share-button">
                             <?php if ($this->user->hasLogin()):?>
-                                <a class="md-menu-list-a" target="_blank" href="<?php $this->options->adminUrl(); ?>write-post.php?cid=<?php echo $this->cid;?>" target="_blank">
+                                <a class="md-menu-list-a" href="<?php $this->options->adminUrl(); ?>write-post.php?cid=<?php echo $this->cid;?>" target="_blank">
                                     <li class="mdl-menu__item">编辑</li>
                                 </a>
                             <?php endif;?>
@@ -103,7 +108,7 @@
 
                     <!-- Articel content -->
                     <div id="post-content" class="mdl-color-text--grey-700 mdl-card__supporting-text fade out">
-                        <?php     
+                        <?php
                         if (!empty($this->options->switch) && in_array('PanguPHP', $this->options->switch)) {
                             print pangu($this->content);
                         } else {
@@ -113,8 +118,8 @@
                         <?php if (!empty($this->options->post_license)): ?>
                             <blockquote style="margin: 2em 0 0;padding: 0.5em 1em;border-left: 3px solid #F44336;background-color: #F5F5F5;list-style: none;">
                                 <p>
-                                    <strong><?php $this->options->post_license(); ?></strong><br>
-                                    <strong><?php echo "本文链接：<a href=\"" . $this->permalink . "\">" . $this->permalink . "</a>" ;?></strong>
+                                    <strong><?php lang("post.permalink"); echo "<a href=\"" . $this->permalink . "\">" . $this->permalink . "</a>" ;?></strong><br>
+                                    <strong><?php $this->options->post_license(); ?></strong>
                                 </p>
                             </blockquote>
                         <?php endif;?>

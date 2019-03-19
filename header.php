@@ -15,10 +15,13 @@
     <!-- dns prefetch -->
     <meta http-equiv="x-dns-prefetch-control" content="on">
     <?php
-    if ($this->options->DNSPrefetch !== "") {
+    if (getThemeOptions("DNSPrefetch") !== "") {
         foreach (explode("\n", $this->options->DNSPrefetch) as $domain) {
             echo '<link rel="dns-prefetch" href="' . trim($domain) . '">' . "\n";
         }
+    }
+    if (getThemeOptions("CDNType") == 1) {
+        echo '<link rel="dns-prefetch" href="//cdn.jsdelivr.net">';
     }
     ?>
 
@@ -27,9 +30,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <meta name="theme-color" content="<?php $this->options->ChromeThemeColor() ?>">
     <meta name="author" content="<?php $this->options->title() ?>">
-    <meta name="description" itemprop="description" content="<?php $this->options->description() ?>">
-    <meta name="keywords" content="<?php $this->options->keywords() ?>">
-
+    <meta name="description" itemprop="description" content="<?php (getDescription()) ? NULL : $this->options->description(); ?>">
+    <meta name="keywords" content="<?php $this->options->keywords() ?><?php ($this->is('post') && count($this->tags) > 0 && print ",") ? $this->tags(",", false, "none") : NULL; ?>">    
+    
     <!-- Favicons -->
     <link rel="icon shortcut" type="image/ico" href="<?php $this->options->favicon() ?>">
     <link rel="icon" sizes="192x192" href="<?php $this->options->favicon() ?>">
@@ -55,12 +58,16 @@
         <meta property="og:type" content="blog" />
         <meta property="og:release_date" content="<?php $this->date('Y-m-j'); ?>" />
         <meta property="og:title" content="<?php $this->options->title(); ?>" />
-        <meta property="og:image" content="<?php showThumbnail($this); ?>" />
-        <meta property="og:description" content="<?php $this->description() ?>" />
+        <meta property="og:image" content="<?php echo showThumbnail($this); ?>" />
+        <meta property="og:description" content="<?php (getDescription()) ? NULL : $this->options->description(); ?>" />
         <meta property="og:author" content="<?php $this->author(); ?>" />
         <meta property="article:published_time" content="<?php $this->date('Y-m-j'); ?>" />
         <meta property="article:modified_time" content="<?php $this->date('Y-m-j'); ?>" />
     <?php endif; ?>
+
+    <!-- Disable Fucking Bloody Baidu Tranformation -->
+    <meta http-equiv="Cache-Control" content="no-transform" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
 
     <!-- Block IE -->
     <!--[if lte IE 9]>
@@ -73,11 +80,13 @@
     <![endif]-->
 
     <!-- The Twitter Card protocol -->
+    <?php if ($this->is("post") || $this->is("page")): ?>
     <meta name="twitter:title" content="<?php $this->archiveTitle(); ?>">
-    <meta name="twitter:description" content="<?php $this->options->description() ?>">
+    <meta name="twitter:description" content="<?php (getDescription()) ? NULL : $this->options->description(); ?>">
     <meta name="twitter:image" content="<?php $this->options->favicon() ?>">
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="<?php $this->permalink(); ?>" />
+    <?php endif; ?>
 
     <?php $this->header(); ?>
 
@@ -87,11 +96,15 @@
     <!-- Import queue -->
     <script>function Queue(){this.dataStore=[];this.offer=b;this.poll=d;this.execNext=a;this.debug=false;this.startDebug=c;function b(e){if(this.debug){console.log("Offered a Queued Function.")}if(typeof e==="function"){this.dataStore.push(e)}else{console.log("You must offer a function.")}}function d(){if(this.debug){console.log("Polled a Queued Function.")}return this.dataStore.shift()}function a(){var e=this.poll();if(e!==undefined){if(this.debug){console.log("Run a Queued Function.")}e()}}function c(){this.debug=true}}var queue=new Queue();</script>
 
-
     <!-- Material style -->
     <?php cssLsload("material_css", "css/material.min.css") ?>
     <?php cssLsload("style_css", "css/style.min.css") ?>
     <?php cssLsload("material_icons", "css/material-icons.css") ?>
+
+    <!-- Disqus JS -->
+    <?php if (getThemeOptions("commentis") == '1' && $this->is("post") || $this->is("page")): ?>
+        <?php cssLsload('disqusjs_css', 'css/disqusjs.css'); ?>
+    <?php endif; ?>
 
     <?php if ($this->options->RobotoSource == '0'): ?>
         <link href='https://fonts.proxy.ustclug.org/css?family=Roboto:300,400,500,700' rel='stylesheet' type='text/css'>
@@ -139,8 +152,13 @@
         .sidebar-colored .sidebar-nav > .open > a,
         .sidebar-colored .sidebar-nav > .open > a:hover,
         .sidebar-colored .sidebar-nav > .open > a:focus,
-        #ds-reset #ds-ctx .ds-ctx-entry .ds-ctx-head a {
+        #ds-reset #ds-ctx .ds-ctx-entry .ds-ctx-head a,
+        .mdl-textfield--floating-label.is-focused .mdl-textfield__label, .mdl-textfield--floating-label.is-dirty .mdl-textfield__label {
             color: <?php $this->options->ThemeColor() ?> !important;
+        }
+
+        .mdl-textfield__label:after {
+            background-color: <?php $this->options->ThemeColor() ?> !important;
         }
 
         .toTop {
@@ -169,6 +187,13 @@
         #scheme-Paradox #comment {
             font-family: <?php $this->options->CustomFonts(); ?>;
         }
+
+        <?php if (getThemeOptions("SearchColor")):?>
+        .search-input {
+            color: <?php getThemeOptions("SearchColor", true); ?>;
+        }
+        <?php endif; ?>
+
 
     </style>
 
@@ -353,16 +378,15 @@
                 opacity: 0;
             }
         </style>
-    <?php 
-        endif;
-        if (!empty($this->options->SearchColor)):
-    ?>
-        <style>
-            .search-input {
-                color: <?php echo $this->options->SearchColor; ?>;
-            }
-        </style>
     <?php endif; ?>
+
+    
+    <!-- Canonical link -->
+    <?php
+    if ($this->is("post") || $this->is("page")) {
+        echo '<link rel="canonical" href="' . $this->permalink . '">';
+    }
+    ?>
 
 </head>
 

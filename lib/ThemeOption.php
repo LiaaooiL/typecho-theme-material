@@ -14,8 +14,8 @@ function themeConfig($form) {
     $Render->panel("main", NULL, NULL,
         $Render->panel("item", "简介", NULL, '<p style="font-size:14px;">
         <span style="display: block; margin-bottom: 10px; margin-top: 10px; font-size: 16px;">感谢您使用 Material 主题</span>
-        <span style="margin-bottom:10px;display:block">请关注 <a href="https://github.com/idawnlight/typecho-theme-material" target="_blank" style="color:#3384da;font-weight:bold;text-decoration:underline">Github-Material</a> 以获得<span style="color:#df3827;font-weight:bold;">最新版本支持</span></span>
-        <a href="mailto:i@lim-light.com" >帮助&支持</a> &nbsp;
+        <span style="margin-bottom:10px;display:block">请关注 <a href="https://github.com/idawnlight/typecho-theme-material" target="_blank" style="color:#3384da;font-weight:bold;text-decoration:underline">Github</a> 以获得<span style="color:#df3827;font-weight:bold;">最新版本支持</span></span>
+        <a href="mailto:idawn@live.com" >帮助&支持</a> &nbsp;
         <a href="https://github.com/idawnlight/typecho-theme-material/issues" target="_blank">建议&反馈</a><br><br>当前版本 ' . MATERIAL_VERSION . '<span id="update"></span><script type="text/javascript" src="https://api.lim-light.com/update/material.php?version=' . MATERIAL_VERSION . '&encode=js-html&front=，" async defer></script></p>', true, false). 
         $Render->panel("item", "功能设定", "基础的功能",
             $Render->panel("item", "功能开关", NULL, 
@@ -27,15 +27,36 @@ function themeConfig($form) {
                  'Pangu' => '引用 Pangu.js 实现中英文间自动添加空格',
                  'PanguPHP' => '引用 Pangu.PHP 后端实现中英文间自动添加空格',
                  'HighLight' => '引用 highlight.js 实现代码高亮',
-                 'Lazyload' => '图片延迟加载（文章内）'], ['SmoothScroll', 'ShowLoadingLine', 'PanguPHP', 'HighLight'])
+                 'Lazyload' => '图片延迟加载（文章内）',
+                 'LazyloadIndex' => '图片延迟加载（首页）',
+                 'LocalStorage' => 'LocalStorage 强缓存策略（对于部分插件不兼容）'], ['SmoothScroll', 'ShowLoadingLine', 'PanguPHP', 'HighLight'])
             ).
             $Render->panel("item", "文章评论", NULL,
                 $Render->panel("item", "文章评论类型", NULL,
-                    $Render->radio("commentis", "文章评论类型", NULL, [0 => "原生评论"], 0)
+                    $Render->radio("commentis", "文章评论类型", 'Disqus 评论使用 <a href="https://github.com/SukkaW/DisqusJS">SukkaW/DisqusJS</a> 实现基础模式渲染', [0 => "原生评论", 1 => 'Disqus (disqus.com)'], 0)
                 ).
                 $Render->panel("item", "评论框行数", NULL,
                     $Render->input("CommentRows", "评论框行数", "默认为 1", 1)
+                ).
+                $Render->panel("item", "Disqus 设置", NULL,
+                    $Render->input("DisqusShortname", "Shortname", "必填，你的 Disqus Forum 的 shortname，你可以在 <a href=\"https://disqus.com/admin/settings/general/\" rel=\"nofollow\">Disqus Admin - Settings - General - Shortname</a> 获取你的 shortnam", null).
+                    $Render->input("DisqusSiteName", "siteName", "非必须，你站点的名称，将会显示在「评论基础模式」的 header 中；该配置应该和 <a href=\"https://disqus.com/admin/settings/general/\" rel=\"nofollow\">Disqus Admin - Settings - General - Website Name</a> 一致", null).
+                    $Render->input("DisqusApi", "api", "必填，DisqusJS 请求的 API Endpoint，通常情况下你应该配置一个 Disqus API 的反代并填入反代的地址。你也可以直接使用 DISQUS 官方 API 的 Endpoint <code>https://disqus.com/api/</code>，或 Sukka 搭建的 Disqus API 反代 Endpoint <code>https://disqus.skk.moe/disqus/</code>", 'https://disqus.skk.moe/disqus/').
+                    $Render->input("DisqusApiKey", "apiKey", "必填，DisqusJS 向 API 发起请求时使用的 API Key，你应该在配置 Disqus Application 时获取了 API Key，参见 <a href='https://github.com/SukkaW/DisqusJS#%E9%85%8D%E7%BD%AE-disqus-application'>https://github.com/SukkaW/DisqusJS#配置-disqus-application</a>", null).
+                    $Render->input("DisqusAdmin", "admin", "非必须，你的站点的 Disqus Moderator 的用户名（也就是你的用户名）。你可以在 <a href=\"https://disqus.com/home/settings/account/\" rel=\"nofollow\">Disqus - Settings - Account - Username</a> 获取你的 Username", null).
+                    $Render->input("DisqusAdminLabel", "adminLabel", "非必须，你想显示在 Disqus Moderator Badge 中的文字。该配置应和 <a href=\"https://disqus.com/admin/settings/community/\" rel=\"nofollow\">Disqus Admin - Settings - Community - Moderator Badge Text</a> 相同", null)
+                ).
+                $Render->panel("item", "拓展设置", NULL,
+                    $Render->input("SwitchToDisqusSince", "从某篇文章开始切换为 Disqus", "填写文章 cid，为 0 或留空则仅由文章评论类型决定", 0)
                 )
+            ).
+            $Render->panel("item", "文章二维码", NULL,
+                $Render->radio("qrcode", "文章二维码", NULL, 
+                [0 => "LWL12 ( api.lwl12.com )",
+                1 => "journey.ad ( api.imjad.cn )",
+                2 => "Google Chart ( chart.googleapis.com )",
+                3 => "豌豆荚 ( www.wandoujia.com/api/qr )",
+                "false" => "不显示二维码"], 0)
             ).
             $Render->panel("item", "搜索设置", NULL,
                 $Render->radio("searchis", "搜索设置", NULL, [0 => "Typecho 原生搜索", 1 => "本地搜索（即时搜索）"], 1)
@@ -90,7 +111,7 @@ function themeConfig($form) {
                 )
             ).
             $Render->panel("item", "文章版权", NULL,
-                $Render->input("license", "文章版权", "你可以在每篇文章的结尾添加你的版权说明，支持 HTML 标签。License 以粗体显示，默认为空。 比如，你可这样设定 CC License。<br><b>&#84;&#104;&#105;&#115;&#32;&#98;&#108;&#111;&#103;&#32;&#105;&#115;&#32;&#117;&#110;&#100;&#101;&#114;&#32;&#97;&#32;&#60;&#97;&#32;&#104;&#114;&#101;&#102;&#61;&#34;&#47;&#99;&#114;&#101;&#97;&#116;&#105;&#118;&#101;&#99;&#111;&#109;&#109;&#111;&#110;&#115;&#46;&#104;&#116;&#109;&#108;&#34;&#32;&#116;&#97;&#114;&#103;&#101;&#116;&#61;&#34;&#95;&#98;&#108;&#97;&#110;&#107;&#34;&#62;&#67;&#67;&#32;&#66;&#89;&#45;&#78;&#67;&#45;&#83;&#65;&#32;&#51;&#46;&#48;&#32;&#85;&#110;&#112;&#111;&#114;&#116;&#101;&#100;&#32;&#76;&#105;&#99;&#101;&#110;&#115;&#101;&#60;&#47;&#97;&#62;</b>", NULL)
+                $Render->input("post_license", "文章版权", "你可以在每篇文章的结尾添加你的版权说明，支持 HTML 标签。License 以粗体显示，默认为空。 比如，你可这样设定 CC License。<br><b>&#84;&#104;&#105;&#115;&#32;&#98;&#108;&#111;&#103;&#32;&#105;&#115;&#32;&#117;&#110;&#100;&#101;&#114;&#32;&#97;&#32;&#60;&#97;&#32;&#104;&#114;&#101;&#102;&#61;&#34;&#47;&#99;&#114;&#101;&#97;&#116;&#105;&#118;&#101;&#99;&#111;&#109;&#109;&#111;&#110;&#115;&#46;&#104;&#116;&#109;&#108;&#34;&#32;&#116;&#97;&#114;&#103;&#101;&#116;&#61;&#34;&#95;&#98;&#108;&#97;&#110;&#107;&#34;&#62;&#67;&#67;&#32;&#66;&#89;&#45;&#78;&#67;&#45;&#83;&#65;&#32;&#51;&#46;&#48;&#32;&#85;&#110;&#112;&#111;&#114;&#116;&#101;&#100;&#32;&#76;&#105;&#99;&#101;&#110;&#115;&#101;&#60;&#47;&#97;&#62;</b>", NULL)
             ).
             $Render->panel("item", "Footer 文字", NULL,
                 $Render->input("footer_text", "Footer 文字", "你可以在页面的 Footer 指定你想显示的文字，支持 HTML 标签；默认为空。 比如，备案号可以这样设定。<br><b>&#60;&#97;&#32;&#104;&#114;&#101;&#102;&#61;&#34;&#104;&#116;&#116;&#112;&#58;&#47;&#47;&#119;&#119;&#119;&#46;&#109;&#105;&#105;&#116;&#98;&#101;&#105;&#97;&#110;&#46;&#103;&#111;&#118;&#46;&#99;&#110;&#34;&#32;&#114;&#101;&#108;&#61;&#34;&#110;&#111;&#102;&#111;&#108;&#108;&#111;&#119;&#34;&#62;&#26576;&#73;&#67;&#80;&#22791;&#120;&#120;&#120;&#120;&#120;&#120;&#120;&#120;&#21495;&#45;&#120;&#60;&#47;&#97;&#62;</b>", NULL)
@@ -132,6 +153,19 @@ function themeConfig($form) {
                 ).
                 $Render->panel("item", "背景颜色 / 图片", NULL,
                     $Render->input("bgcolor", "背景颜色 / 图片", "背景设置如果选择纯色背景, 这里就填写颜色代码; <br />背景设置如果选择图片背景, 这里就填写图片地址;<br />不填写则默认显示 #F5F5F5 或主题文件夹下的 /img/bg.jpg", NULL)
+                ).
+                $Render->panel("item", "背景渐变", NULL,
+                    $Render->radio("GradientType", "背景渐变", NULL, 
+                    ['0' => _t('Aerinite'),
+                     '1' => _t('Ethereal'),
+                     '2' => _t('Patrichor'),
+                     '3' => _t('Komorebi'),
+                     '4' => _t('Crepuscular'),
+                     '5' => _t('Autumn'),
+                     '6' => _t('Shore'),
+                     '7' => _t('Horizon'),
+                     '8' => _t('Green Beach'),
+                     '9' => _t('Virgin')], 0)
                 )
             ).
             $Render->panel("item", "缩略图显示效果", NULL,
@@ -195,6 +229,11 @@ function themeConfig($form) {
             $Render->panel("item", "自定义字体", NULL,
                 $Render->input("CustomFonts", "自定义字体", "主题的 font-family，通常不建议修改", "Roboto, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif")
             )
-        )
+        ).
+        $Render->panel("item", "工具箱", '那点零零碎碎的小工具', '
+<div class="mdui-list">
+  <a href="'.Typecho_Widget::widget('Widget_Options')->siteUrl.'?mod=expert&type=comments" class="mdui-list-item mdui-ripple">导出评论（以 WXR 格式）</a>
+</div>
+        ')
     );
 }

@@ -1,59 +1,115 @@
 <?php
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 
-define("MATERIAL_VERSION", "3.2.1");
+define("MATERIAL_VERSION", "3.3.1");
 
+require_once("lib/tools.php");
 require_once("lib/UACheck.php");
 require_once("lib/pangu.php");
 require_once("lib/Spyc.php");
 require_once("lib/ThemeOptionRender.php");
 require_once("lib/ThemeOption.php");
 
-error_reporting(0);
+if (!defined('__TYPECHO_DEBUG__') || __TYPECHO_DEBUG__ == 0) {
+    error_reporting(0);
+}
 
-if (isset($_GET["mod"])) {
+if (isset($this)) {
+    global $t;
+    $t = $this;
+}
+
+if (isset($_GET["mod"]) && isset($this) && $this->is('index')) {
     if ($_GET["mod"] === "search-xml") {
         $this->need("page-search.php");
         exit;
     }
+    if ($_GET["mod"] === "expert") {
+        if ($_GET['type'] === 'comments') {
+            if (Typecho_Widget::widget('Widget_User')->pass('administrator', true)) {
+                header("Content-Type: text/xml");
+                header('Content-Disposition: attachment; filename="'.Typecho_Widget::widget('Widget_Options')->title.'-comments-wxr-'.gmdate('Y-m-d').'.xml"');
+                $tool = new Comment_Expert();
+                $db = Typecho_Db::get();
+                $query = $db->select('*')->from('table.contents')->where('type = ?', 'post')->orWhere('type = ?', 'page');
+                $result = $db->fetchAll($query);
+                foreach ($result as $item) {
+                    $tool->addBlock($item);
+                }
+                $comment_query = $db->select('*')->from('table.comments');
+                $comments = $db->fetchAll($comment_query);
+                foreach ($comments as $comment) {
+                    if ($comment['status'] !== 'spam') {
+                        $tool->addComment($comment);
+                    }
+                }
+                echo $tool->getResult();
+                exit;
+            }
+        }
+    }
 }
 
 /**
- * JavaScript LS 载入
+ * JavaScript 载入
  * @param string name
  * @param string uri
  */
 function jsLsload($name, $uri)
 {
-    $options = Helper::options();
-    $identifier = $name . $uri . filemtime($options->themeFile(getTheme(), $uri)) . MATERIAL_VERSION;
-    //$md5 = md5(file_get_contents($options->themeFile(getTheme(), $uri)));
-    $hash = md5($identifier);
-    echo '<script>lsloader.load("' . $name . '","' . getThemeFile($uri) . '?' . $hash . '", true)</script>';
+    if (in_array("LocalStorage", getThemeOptions("switch"))) {
+        $options = Helper::options();
+        $identifier = $name . $uri . filemtime($options->themeFile(getTheme(), $uri)) . MATERIAL_VERSION;
+        $hash = md5($identifier);
+        echo '<script>lsloader.load("' . $name . '","' . getThemeFile($uri) . '?' . $hash . '", true)</script>';
+    } else {
+        echo '<script src="'.getThemeFile($uri).'"></script>';
+    }
 }
 
 /**
- * CSS LS 载入
+ * CSS 载入
  * @param string name
  * @param string uri
  */
 function cssLsload($name, $uri)
 {
-    $options = Helper::options();
-    $identifier = $name . $uri . filemtime($options->themeFile(getTheme(), $uri)) . MATERIAL_VERSION;
-    //$md5 = md5(file_get_contents($options->themeFile(getTheme(), $uri)));
-    $hash = md5($identifier);
-    echo '<style id="' . $name . '"></style>';
-    echo '<script>if(typeof window.lsLoadCSSMaxNums === "undefined")window.lsLoadCSSMaxNums = 0;window.lsLoadCSSMaxNums++;lsloader.load("' . $name . '","' . getThemeFile($uri) . '?' . $hash . '",function(){if(typeof window.lsLoadCSSNums === "undefined")window.lsLoadCSSNums = 0;window.lsLoadCSSNums++;if(window.lsLoadCSSNums == window.lsLoadCSSMaxNums)document.documentElement.style.display="";}, false)</script>';
+    if (in_array("LocalStorage", getThemeOptions("switch"))) {
+        $options = Helper::options();
+        $identifier = $name . $uri . filemtime($options->themeFile(getTheme(), $uri)) . MATERIAL_VERSION;
+        $hash = md5($identifier);
+        echo '<style id="' . $name . '"></style>';
+        echo '<script>if(typeof window.lsLoadCSSMaxNums === "undefined")window.lsLoadCSSMaxNums = 0;window.lsLoadCSSMaxNums++;lsloader.load("' . $name . '","' . getThemeFile($uri) . '?' . $hash . '",function(){if(typeof window.lsLoadCSSNums === "undefined")window.lsLoadCSSNums = 0;window.lsLoadCSSNums++;if(window.lsLoadCSSNums == window.lsLoadCSSMaxNums)document.documentElement.style.display="";}, false)</script>';
+    } else {
+        echo '<link href="'.getThemeFile($uri).'" rel="stylesheet" type="text/css" />';
+    }
+}
+
+function getScriptType()
+{
+    if (in_array("LocalStorage", getThemeOptions("switch"))) {
+        echo 'text/ls-javascript';
+    } else {
+        echo 'text/javascript';
+    }
+}
+
+function getBackgroundLazyload($url)
+{
+    if (in_array("LazyloadIndex", getThemeOptions("switch"))) {
+        echo 'data-original="' . $url . '"';
+    } else {
+        echo 'style="background-image: url(\'' . $url . '\');"';
+    }
 }
 
 function getThemeFile($uri, $print = false)
 {
     $options = Helper::options();
-    $themeOptions = getThemeOptions();
-    if ($themeOptions["CDNType"] == 1) {
+    if (getThemeOptions("CDNType") == 1) {
         $url = "https://cdn.jsdelivr.net/gh/idawnlight/typecho-theme-material@" . MATERIAL_VERSION . "/" . $uri;
-    } elseif ($themeOptions["CDNType"] == 2) {
-        $url = $themeOptions["CDNURL"] . "/" . $uri;
+    } elseif (getThemeOptions("CDNType") == 2) {
+        $url = getThemeOptions("CDNURL") . "/" . $uri;
     } else {
         $site = substr($options->siteUrl, 0, strlen($options->siteUrl) - 1);
         $url = $site . __TYPECHO_THEME_DIR__ . "/" . getTheme() . "/" . $uri;
@@ -86,19 +142,19 @@ function getTheme()
 function getThemeOptions($setting = NULL, $print = false)
 {
     static $themeOptions = NULL;
-    if ($themeOptions == NULL) {
+    if ($themeOptions === NULL) {
         $db = Typecho_Db::get();
         $query = $db->select('value')->from('table.options')->where('name = ?', 'theme:' . getTheme());
         $result = $db->fetchAll($query);
         $themeOptions = unserialize($result[0]["value"]);
     }
     if ($print) echo (isset($themeOptions[$setting])) ? $themeOptions[$setting] : NULL;
-    return ($setting === NULL) ? $themeOptions : (isset($themeOptions[$setting])) ? $themeOptions[$setting] : NULL;
+    return ($setting === NULL) ? $themeOptions : (isset($themeOptions[$setting]) ? $themeOptions[$setting] : NULL);
 }
 
 function themeInit($archive)
 {
-    if (($archive->is('post') || $archive->is('page')) && in_array("Lazyload", getThemeOptions()["switch"])) {
+    if (($archive->is('post') || $archive->is('page')) && in_array("Lazyload", getThemeOptions("switch"))) {
         $archive->content = preg_replace('#<img(.*?) src="(.*?)" (.*?)>#',
             '<img$1 data-original="$2" class="lazy" $3>', $archive->content);
     }
@@ -111,14 +167,41 @@ function themeInit($archive)
 }
 
 /**
+ * 获取二维码
+ * @param string permalink
+ * @return string url
+ */
+function getQRCode($permalink) {
+    $qrcode = getThemeOptions("qrcode");
+    if ($qrcode === NULL) $qrcode = 0;
+    $src = "";
+    switch ($qrcode) {
+        case 0:
+            $src = "https://api.lwl12.com/img/qrcode/get?ct=$permalink&w=200&h=200";
+            break;
+        case 1:
+            $src = "https://api.imjad.cn/qrcode/?text=$permalink&size=200&level=L";
+            break;
+        case 2:
+            $src = "https://chart.googleapis.com/chart?chs=200x200&cht=qr&chld=H|1&chl=$permalink";
+            break;
+        case 3:
+            $src = "https://www.wandoujia.com/api/qr?s=7&c=$permalink";
+            break;
+    }
+    echo $src;
+    return $src;
+}
+
+/**
  * 文章缩略图
- * @param $widget $widget
+ * @param Typecho_Widget $widget
+ * @return string image url
  */
 function showThumbnail($widget)
 {
-    if($widget->fields->picUrl){
-        echo $widget->fields->picUrl;
-        return;
+    if ($widget->fields->picUrl){
+        return $widget->fields->picUrl;
     }
 
     //If article no include picture, display random default picture
@@ -134,19 +217,20 @@ function showThumbnail($widget)
     $patternlazy = '/\<img.*?data-original\=\"(.*?)\"[^>]*>/i';
 
     if (preg_match_all($pattern, $widget->content, $thumbUrl)) {
-        echo $thumbUrl[1][0];
+        return $thumbUrl[1][0];
     } elseif (preg_match_all($patternlazy, $widget->content, $thumbUrl)) {
-        echo $thumbUrl[1][0];
+        return $thumbUrl[1][0];
     } elseif ($attach->isImage) {
-        echo $attach->url;
+        return $attach->url;
     } else {
-        echo $random;
+        return $random;
     }
 }
 
 /**
  * 随机缩略图
- * @param $widget $widget
+ * @param Typecho_Widget $widget
+ * @return string image url
  */
 function randomThumbnail($widget)
 {
@@ -155,11 +239,11 @@ function randomThumbnail($widget)
 
     $random = getThemeFile('img/random/material-' . $rand . '.png');
 
-    echo $random;
+    return $random;
 }
 
 /**
- * Console Copyrigtht
+ * Console Copyright
  */
 function copyright()
 {
@@ -227,4 +311,21 @@ function pangu($html_source)
         $result .= doPangu($c);
     }
     return $result;
+}
+
+/**
+ * 获取描述
+ * @return bool 是否已输出
+ */
+function getDescription() {
+    global $t;
+    if (method_exists($t,'is') && $t->is("post") || $t->is("page")) {
+        if ($t->fields->description != ""){
+            echo $t->fields->description;
+        } else {
+            $t->excerpt(80, '...');
+        }
+        return true;
+    }
+    return false;
 }
